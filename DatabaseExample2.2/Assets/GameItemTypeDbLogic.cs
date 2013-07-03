@@ -1,3 +1,4 @@
+using System.Data;
 using System.Data.Common;
 using System;
 
@@ -12,8 +13,9 @@ public class GameItemTypeDbLogic : IDTODbLogic<GameItemType>
 		GameItemType newItemType = new GameItemType();
 		newItemType.GameItemTypeCd = row["game_item_type_cd"].ToString();
 		newItemType.GameItemDescription = row["game_item_description"].ToString();
-		newItemType.CanHeal = //bool.Parse(
-			(int)row["can_heal"]; //);
+		UnityEngine.Debug.Log("can_heal comes back as:" +row["can_heal"].ToString());
+		newItemType.CanHeal = Int32.Parse(row["can_heal"].ToString());
+		
 		newItemType.BodyPartWornCd = row["body_part_worn_cd"].ToString();
 		return newItemType;
 	}

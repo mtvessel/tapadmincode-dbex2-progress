@@ -281,9 +281,21 @@ public class GameDatabase : ScriptableObject {
 		cmd.CommandType = CommandType.Text;
 		cmd.CommandText = "SELECT * FROM " + dbTableName;
 		adapter.SelectCommand = cmd;
-		adapter.FillSchema(table, SchemaType.Source);
+		if (adapter is SqlDataAdapter)
+		{
+			((SqlDataAdapter)adapter).FillSchema(table, SchemaType.Source);
+		}
+		else if (adapter is SqliteDataAdapter)
+		{
+			((SqliteDataAdapter)adapter).FillSchema(table, SchemaType.Source);			
+		}
+		
 		DbCommandBuilder builder = GetCommandBuilder(adapter);
 		
+//		adapter.InsertCommand = builder.GetInsertCommand();
+//		adapter.UpdateCommand = builder.GetUpdateCommand();
+//		adapter.DeleteCommand = builder.GetDeleteCommand();
+
 		SqlCommandBuilder sqlbuilder = builder as SqlCommandBuilder;
 		if (sqlbuilder != null)
 		{
@@ -324,11 +336,13 @@ public class GameDatabase : ScriptableObject {
 		Type currentConnectionType = currentDbConnection.GetType();
 		if (currentConnectionType == typeof(SqlConnection)) 
 		{
-			builder = new SqlCommandBuilder();
+			SqlDataAdapter sqladapter = adapter as SqlDataAdapter;
+			builder = new SqlCommandBuilder(sqladapter);
 		}
 		else if (currentConnectionType == typeof(SqliteConnection))
 		{
-			builder = new SqliteCommandBuilder();
+			SqliteDataAdapter sqliteadapter = adapter as SqliteDataAdapter;
+			builder = new SqliteCommandBuilder(sqliteadapter);
 		}
 		else
 		{

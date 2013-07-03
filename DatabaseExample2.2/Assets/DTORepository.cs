@@ -292,17 +292,18 @@ public class DTORepository<TGameObject>
                 dataAdapter.SelectCommand.Connection.Open();
             }
 
-//            if (dataAdapter is SqlDataAdapter)
-//            {
-//                SqlDataAdapter sqlda = dataAdapter as SqlDataAdapter;
-//                sqlda.Update(currentDataTable);
-//            }
-//            else if (dataAdapter is SqliteDataAdapter )
-//            {
-//				SqliteDataAdapter sqlida = dataAdapter as SqliteDataAdapter;
-//                dataAdapter.Update(currentDataTable);
-//            }				
-			dataAdapter.Update(currentDataTable);
+            if (dataAdapter is SqlDataAdapter)
+            {
+                SqlDataAdapter sqlda = dataAdapter as SqlDataAdapter;
+                sqlda.Update(currentDataTable);
+            }
+            else if (dataAdapter is SqliteDataAdapter )
+            {
+				SqliteDataAdapter sqlida = dataAdapter as SqliteDataAdapter;
+                dataAdapter.Update(currentDataTable);
+            }				
+			
+//			dataAdapter.Update(currentDataTable);
 		}
 		catch (System.Exception ex)
 		{

@@ -54,14 +54,14 @@
      <Compile Include="Assets\GameObjectBase.cs" />
      <Compile Include="Assets\IDTODbLogic.cs" />
      <Compile Include="Assets\ItemRepository.cs" />
+ <Reference Include="Mono.Data.Sqlite">
+ <HintPath>Assets\Mono.Data.Sqlite.dll</HintPath>
+ </Reference>
  <Reference Include="System.Data">
  <HintPath>Assets\System.Data.dll</HintPath>
  </Reference>
  <Reference Include="System.EnterpriseServices">
  <HintPath>Assets\System.EnterpriseServices.dll</HintPath>
- </Reference>
- <Reference Include="Mono.Data.Sqlite">
- <HintPath>Assets\Mono.Data.Sqlite.dll</HintPath>
  </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
