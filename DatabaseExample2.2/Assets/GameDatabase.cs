@@ -17,7 +17,7 @@ public enum SupportedDbType { SQLITE, SQL_SERVER }
 /// <summary>
 /// Utility class for common database actions and information.
 /// </summary>
-public class GameDatabase : ScriptableObject {
+public class GameDatabase {
 
 	private static readonly List<string> LOCAL_DB_FILE_EXTENSIONS = new List<string> { ".db", ".db3", ".sqlite" };
 	
@@ -94,7 +94,7 @@ public class GameDatabase : ScriptableObject {
 	void HandleCurrentDbConnectionStateChange (object sender, StateChangeEventArgs e)
 	{
 		Debug.Log(string.Format("Db state changed from {0} to {1}", e.OriginalState.ToString(), e.CurrentState.ToString()));
-		}
+	}
 
 	/// <summary>
 	/// Sets the default db connection, which is a sqlite connection based on any local database file found.

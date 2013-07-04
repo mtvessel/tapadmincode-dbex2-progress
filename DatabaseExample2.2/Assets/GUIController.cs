@@ -19,7 +19,7 @@ public class GUIController : MonoBehaviour {
 		// db initialization and setup is done here, and in the Start() method, so it's done prior to user interaction.
 		
 		// initialize database
-		gameDatabase = ScriptableObject.CreateInstance<GameDatabase>();
+		gameDatabase = new GameDatabase(); //ScriptableObject.CreateInstance<GameDatabase>();
 		gameDatabase.SetDefaultConnection();
 		
 		// set up the item repository, which the gui will need to instantiate GameItems using db data
@@ -51,7 +51,7 @@ public class GUIController : MonoBehaviour {
 		}		
 		
 		if (itemRepository.AllItems.Count == 0) { return; }
-		
+
 		//Debug.Log ("Making labels for " + itemRepository.AllItems.Count + " item(s).");
 		
 		// we've got some inventory, so display it

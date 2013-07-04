@@ -43,6 +43,10 @@ public class DTORepository<TGameObject>
 	
 	// mapping of GameObject PropertyInfo objects to data table column names, format = Key = column name, Value = PropertyInfo
 	private Dictionary<string, PropertyInfo> propertyInfoForColumnName = new Dictionary<string, PropertyInfo>();
+	
+	private Dictionary<DataRow, TGameObject> gameObjectForDataRow = new Dictionary<DataRow, TGameObject>();
+	private List<string> primaryKeyPropertyNames = new List<string>();
+	private Dictionary<SortedDictionary<string, object>, TGameObject> gameObjectForPrimaryKey = new Dictionary<SortedDictionary<string, object>, TGameObject>();
 
 	
 	#endregion fields
@@ -230,9 +234,24 @@ public class DTORepository<TGameObject>
 		return allItems;
 	} // FindAll
 	
-	public TGameObject FindByKey(GameDatabase gameDatabase, List<KeyValuePair<string, string>> keyList)
+	public TGameObject FindByKey(GameDatabase gameDatabase, SortedDictionary<string, object> keys)
 	{
-		throw new NotImplementedException("Finding by key not implemented yet.");
+		TGameObject gameObjectForKey = null;
+		
+		if (AllItems == null || AllItems.Count == 0)
+		{
+			FindAll(gameDatabase);
+		}
+		
+		if (gameObjectForPrimaryKey != null && gameObjectForPrimaryKey.Count > 0)
+		{
+			if (gameObjectForPrimaryKey.ContainsKey(keys))
+			{
+				gameObjectForKey = gameObjectForPrimaryKey[keys];
+			}
+		}
+		
+		return gameObjectForKey;
 	}
 	
 	public List<TGameObject> SaveAll(GameDatabase gameDatabase)
@@ -362,11 +381,28 @@ public class DTORepository<TGameObject>
 			BuildPropertyColumnMappings(tableRow);		
 		}
 		
+		if (primaryKeyPropertyNames == null || primaryKeyPropertyNames.Count == 0)
+		{
+			BuildPrimaryKeyPropertyList(tableRow.Table);
+		}
+
+		SortedDictionary<string, object> primaryKeyValues = new SortedDictionary<string, object>();
+		
 		//Type gameObjectType = item.GetType();
 		foreach (string colname in propertyInfoForColumnName.Keys) 
 		{			
 			PropertyInfo targetPropertyInfo = propertyInfoForColumnName[colname];
-			targetPropertyInfo.SetValue(item, Convert.ChangeType(tableRow[colname], targetPropertyInfo.PropertyType), null);
+			object propertyValue = Convert.ChangeType(tableRow[colname], targetPropertyInfo.PropertyType);
+			targetPropertyInfo.SetValue(item, propertyValue, null);
+			if (primaryKeyPropertyNames.Contains(targetPropertyInfo.Name))
+			{
+				primaryKeyValues.Add(targetPropertyInfo.Name, propertyValue);
+			}
+		}
+		
+		if (primaryKeyValues.Count > 0)
+		{
+			gameObjectForPrimaryKey.Add(primaryKeyValues, item);
 		}
 	}
 
@@ -462,22 +498,39 @@ public class DTORepository<TGameObject>
 	{
 		List<TGameObject> allItems = new List<TGameObject>();
 		
+		if (primaryKeyPropertyNames.Count == 0)
+		{
+			BuildPrimaryKeyPropertyList (table);
+		}
+		
 		// Iterate through the returned datatable and for each row returned, call the dbLogic component
 		// to map each row to an object.  For each object, also map any child properties that require their own
 		// repository calls.
 		foreach (DataRow row in table.Rows)
 		{
-			TGameObject newItem = dbLogic.CreateShallowObjectFromDataRow(row);
+			TGameObject newItem = new TGameObject();  //dbLogic.CreateShallowObjectFromDataRow(row);
+			PopulateObjectFromRow(newItem, row);
 			newItem.TableRow = row;
 			dbLogic.PopulateChildObjects(newItem, gameDatabase);
 			newItem.SetObjectChanged(DataRowState.Unchanged);
 			allItems.Add(newItem);
+			gameObjectForDataRow.Add(row, newItem);
 		}
 		
 		currentDataTable = table;
 		return allItems;
 	}
 
+
+	void BuildPrimaryKeyPropertyList (DataTable table)
+	{
+		primaryKeyPropertyNames = new List<string>();
+		foreach (DataColumn keyCol in table.PrimaryKey)
+		{
+			string propertyName = PropertyNameFromColumnName(keyCol.ColumnName);
+			primaryKeyPropertyNames.Add(propertyName);
+		}
+	}
 	#endregion private methods
 
 } // class DTORepository
