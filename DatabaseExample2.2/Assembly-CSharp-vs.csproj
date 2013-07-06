@@ -18,7 +18,7 @@
 	<DebugType>full</DebugType>
 	<Optimize>false</Optimize>
 	<OutputPath>Temp\bin\Debug\</OutputPath>
-	<DefineConstants>DEBUG;TRACE;UNITY_STANDALONE_WIN;ENABLE_MICROPHONE;ENABLE_IMAGEEFFECTS;ENABLE_WEBCAM;ENABLE_AUDIO_FMOD;UNITY_STANDALONE;ENABLE_NETWORK;ENABLE_MONO;ENABLE_PHYSICS;ENABLE_TERRAIN;ENABLE_CACHING;ENABLE_SUBSTANCE;ENABLE_GENERICS;ENABLE_CLOTH;ENABLE_MOVIES;ENABLE_AUDIO;ENABLE_WWW;ENABLE_SHADOWS;ENABLE_DUCK_TYPING;UNITY_4_1_5;UNITY_4_1;ENABLE_PROFILER;UNITY_EDITOR</DefineConstants>
+	<DefineConstants>DEBUG;TRACE;UNITY_STANDALONE_WIN;ENABLE_MICROPHONE;ENABLE_IMAGEEFFECTS;ENABLE_WEBCAM;ENABLE_AUDIO_FMOD;UNITY_STANDALONE;ENABLE_NETWORK;ENABLE_MONO;ENABLE_PHYSICS;ENABLE_TERRAIN;ENABLE_CACHING;ENABLE_SUBSTANCE;ENABLE_GENERICS;ENABLE_CLOTH;ENABLE_MOVIES;ENABLE_AUDIO;ENABLE_WWW;ENABLE_SHADOWS;ENABLE_DUCK_TYPING;UNITY_4_1_5;UNITY_4_1;DEVELOPMENT_BUILD;ENABLE_PROFILER;UNITY_EDITOR</DefineConstants>
 	<ErrorReport>prompt</ErrorReport>
 	<WarningLevel>4</WarningLevel>
 	<NoWarn>0169</NoWarn>
@@ -54,14 +54,21 @@
      <Compile Include="Assets\GameObjectBase.cs" />
      <Compile Include="Assets\IDTODbLogic.cs" />
      <Compile Include="Assets\ItemRepository.cs" />
+     <Compile Include="Assets\PrimaryKeyComparer.cs" />
  <Reference Include="Mono.Data.Sqlite">
  <HintPath>Assets\Mono.Data.Sqlite.dll</HintPath>
+ </Reference>
+ <Reference Include="System.Configuration">
+ <HintPath>Assets\System.Configuration.dll</HintPath>
  </Reference>
  <Reference Include="System.Data">
  <HintPath>Assets\System.Data.dll</HintPath>
  </Reference>
  <Reference Include="System.EnterpriseServices">
  <HintPath>Assets\System.EnterpriseServices.dll</HintPath>
+ </Reference>
+ <Reference Include="System.Security">
+ <HintPath>Assets\System.Security.dll</HintPath>
  </Reference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

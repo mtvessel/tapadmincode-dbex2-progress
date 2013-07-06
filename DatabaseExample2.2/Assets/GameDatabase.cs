@@ -18,7 +18,7 @@ public enum SupportedDbType { SQLITE, SQL_SERVER }
 /// Utility class for common database actions and information.
 /// </summary>
 public class GameDatabase {
-
+	
 	private static readonly List<string> LOCAL_DB_FILE_EXTENSIONS = new List<string> { ".db", ".db3", ".sqlite" };
 	
 	private DbConnection currentDbConnection = null;
@@ -82,6 +82,7 @@ public class GameDatabase {
 			
 			// clear out any cached data
 			cachedDataAdapters.Clear();
+			
 		} catch (System.Exception ex) {
 			
 			Debug.LogException(ex);			
@@ -103,6 +104,21 @@ public class GameDatabase {
 	{
 		string connectionString = GetDefaultDbConnectionString();
 		SetConnection(connectionString, SupportedDbType.SQLITE);
+	}
+	
+	public void SetConnectionFromEmbeddedResource(string resourceName)
+	{
+		TextAsset asset = Resources.Load(resourceName) as TextAsset;
+		//Stream s = new MemoryStream(asset.bytes);		
+		//BinaryReader br = new BinaryReader(s);
+		string resourceFilename = Application.dataPath + "\\" + resourceName;
+		FileStream fs = new FileStream(resourceFilename, FileMode.Create);
+		BinaryWriter wr = new BinaryWriter(fs);
+		wr.Write(asset.bytes);
+		fs.Close();
+		wr.Close();
+		
+		SetConnection(ConnectionStringFromLocalDBFilename(resourceFilename), SupportedDbType.SQLITE);
 	}
 		
 	/// <summary>
@@ -287,7 +303,8 @@ public class GameDatabase {
 		}
 		else if (adapter is SqliteDataAdapter)
 		{
-			((SqliteDataAdapter)adapter).FillSchema(table, SchemaType.Source);			
+			((SqliteDataAdapter)adapter).MissingSchemaAction = MissingSchemaAction.AddWithKey;
+			((SqliteDataAdapter)adapter).FillSchema(table, SchemaType.Source);	
 		}
 		
 		DbCommandBuilder builder = GetCommandBuilder(adapter);
@@ -654,7 +671,76 @@ public class GameDatabase {
 	}
 	
 	#endregion
-	
+
+	#region test
+	public void PrintAllMetaData()
+	{
+		// TEST AREA!
+		ConnectionState origConnectionState = currentDbConnection.State;
+		if (origConnectionState != ConnectionState.Open) {
+			currentDbConnection.Open();
+		}
+		StringBuilder sb = new StringBuilder();
+		sb.AppendLine("Metadata info for connection type" + currentDbConnection.GetType().ToString());
+		
+		try {
+			DataTable metaDataTable = currentDbConnection.GetSchema("MetaDataCollections");
+			foreach (DataRow metarow in metaDataTable.Rows)
+			{
+				string collectionName = metarow[0].ToString();
+				if (collectionName == "StructuredTypeMembers" 
+					|| collectionName == "Views"
+					|| collectionName == "ViewColumns"
+					|| collectionName == "UserDefinedTypes"
+					)
+				{
+					continue; // throws an error
+				}
+				DataTable collectionTable = currentDbConnection.GetSchema(collectionName);
+				// print header
+				sb.AppendLine("Collection: " + collectionName);
+				foreach (DataColumn col in collectionTable.Columns)
+				{				
+					sb.AppendFormat("{0}\t", col.ColumnName);
+				}
+				sb.AppendLine();
+				
+				foreach (DataRow collectionrow in collectionTable.Rows)
+				{
+					for(int i = 0; i < collectionTable.Columns.Count; i++)
+					{
+						sb.AppendFormat("{0}\t", collectionrow[i].ToString());
+					}
+					sb.AppendLine();
+				}
+				sb.AppendLine();
+			}
+			
+			// try these explicitly:
+			//ForeignKeys	Table	@Table	TABLE_NAME	3																		
+			//ForeignKeys	Name	@Name	CONSTRAINT_NAME	4																		
+//			if (currentDbConnection.GetType() == typeof(SqlConnection))
+//			{
+//				DataTable fkschema1 = currentDbConnection.GetSchema("ForeignKeys", new string[] {"Table", "player_item"});
+//				DataTable fkschema2 = currentDbConnection.GetSchema("ForeignKeys", new string[] {"Name", "FK_player_item_game_item"});
+//				int fuckYouMonoDevelopINeedToLookAtTheLastStatementBeforeYouGoOutOfScope = 1;
+//			}
+
+			
+		} finally {
+			using (StreamWriter writer = File.CreateText(Application.dataPath + "\\metatdata_info.tab"))
+			{
+				writer.Write(sb.ToString());
+			}			
+				
+			if (origConnectionState == ConnectionState.Closed) {
+				currentDbConnection.Close();
+			}
+			
+			Debug.Log("Print metadata complete.");
+		}
+	}
+	#endregion	
 }
 
 

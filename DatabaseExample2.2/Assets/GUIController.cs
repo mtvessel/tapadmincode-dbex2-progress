@@ -19,8 +19,25 @@ public class GUIController : MonoBehaviour {
 		// db initialization and setup is done here, and in the Start() method, so it's done prior to user interaction.
 		
 		// initialize database
-		gameDatabase = new GameDatabase(); //ScriptableObject.CreateInstance<GameDatabase>();
-		gameDatabase.SetDefaultConnection();
+		try
+		{
+			gameDatabase = new GameDatabase(); //ScriptableObject.CreateInstance<GameDatabase>();
+			gameDatabase.SetDefaultConnection();
+			
+			if (gameDatabase.CurrentDbConnection == null)
+			{
+				gameDatabase.SetConnectionFromEmbeddedResource("atas.db");
+			}
+		}
+		catch (UnityException uex)
+		{
+			Debug.LogException(uex);
+		}
+		catch (System.Exception ex)
+		{
+			Debug.LogException(ex);
+		}
+		
 		
 		// set up the item repository, which the gui will need to instantiate GameItems using db data
 		IDTODbLogic<GameItem> gameItemDbLogic = new GameItemDbLogic();			
@@ -40,6 +57,11 @@ public class GUIController : MonoBehaviour {
 		int padding = 5;
 		int buttonHeight = labelHeight * 2;
 				
+		if (GUI.Button (new Rect (left, top, width, buttonHeight), "Click to print connection metatdata")) {							
+			gameDatabase.PrintAllMetaData();
+		}
+		
+		top += buttonHeight + padding;
 		if (GUI.Button (new Rect (left, top, width, buttonHeight), "Click to load inventory from sqlite")) {							
 			itemRepository.FindAll(gameDatabase);
 		}
@@ -61,7 +83,7 @@ public class GUIController : MonoBehaviour {
 		
 		// logic for udpating
 		top += ((buttonHeight + padding) * itemRepository.AllItems.Count);
-		if (GUI.Button (new Rect (left, top, width, buttonHeight), "Click to update first item type found")) {			
+		if (GUI.Button (new Rect (left, top, width, buttonHeight), "Click to update item type 'CORE'")) {			
 						
 			if (itemRepository == null || itemRepository.AllItems == null || itemRepository.AllItems.Count == 0)
 			{
@@ -69,7 +91,11 @@ public class GUIController : MonoBehaviour {
 			}
 			else
 			{
-				GameItemType myItemType = itemRepository.AllItems[0].GameItemType;
+				GameItemTypeDbLogic itemTypeLogic = new GameItemTypeDbLogic();
+				DTORepository<GameItemType> itemTypeRepo = DTORepository<GameItemType>.GetInstance(itemTypeLogic);
+				GameItemType myItemType = //itemRepository.AllItems[0].GameItemType;
+					itemTypeRepo.FindByKey(gameDatabase,
+										   new SortedDictionary<string, object>() { {"GameItemTypeCd","CORE"} });				
 				
 				if (myItemType != null)
 				{

@@ -19,7 +19,7 @@ using System.Collections.Generic;
 public class DTORepository<TGameObject>
 	where TGameObject : GameObjectBase, new()
 {
-	#region fields
+	#region fields/properties
 
 	// allItems = cached copy of all DTO objects of a given type
 	private List<TGameObject> allItems = new List<TGameObject>();
@@ -43,10 +43,13 @@ public class DTORepository<TGameObject>
 	
 	// mapping of GameObject PropertyInfo objects to data table column names, format = Key = column name, Value = PropertyInfo
 	private Dictionary<string, PropertyInfo> propertyInfoForColumnName = new Dictionary<string, PropertyInfo>();
+
+	// list of GameObject Property names that comprise the primary key for this object
+	private List<string> primaryKeyPropertyNames = new List<string>();
 	
 	private Dictionary<DataRow, TGameObject> gameObjectForDataRow = new Dictionary<DataRow, TGameObject>();
-	private List<string> primaryKeyPropertyNames = new List<string>();
-	private Dictionary<SortedDictionary<string, object>, TGameObject> gameObjectForPrimaryKey = new Dictionary<SortedDictionary<string, object>, TGameObject>();
+	private Dictionary<SortedDictionary<string, object>, TGameObject> gameObjectForPrimaryKey = 
+		new Dictionary<SortedDictionary<string, object>, TGameObject>(new PrimaryKeyComparer());
 
 	
 	#endregion fields
@@ -249,6 +252,25 @@ public class DTORepository<TGameObject>
 			{
 				gameObjectForKey = gameObjectForPrimaryKey[keys];
 			}
+			//TEST - since debugging collections is buggy, dump all values to console
+#if DEBUG
+			UnityEngine.Debug.Log("Looking for object where key is...");
+			foreach(string key in keys.Keys)
+			{
+				UnityEngine.Debug.Log(string.Format("{0}={1}", key, keys[key]));
+			}
+			UnityEngine.Debug.Log("Key collection contains is...");
+			int itemCnt = 0;
+			foreach(SortedDictionary<string, object> primaryKey in gameObjectForPrimaryKey.Keys)
+			{
+				itemCnt++;
+				UnityEngine.Debug.Log("Primary Keys for item #" + itemCnt);
+				foreach(string keyProperty in primaryKey.Keys)
+				{
+					UnityEngine.Debug.Log(string.Format("property {0}={1}", keyProperty, primaryKey[keyProperty].ToString()));
+				}
+			}						
+#endif
 		}
 		
 		return gameObjectForKey;
@@ -400,6 +422,7 @@ public class DTORepository<TGameObject>
 			}
 		}
 		
+		
 		if (primaryKeyValues.Count > 0)
 		{
 			gameObjectForPrimaryKey.Add(primaryKeyValues, item);
@@ -496,7 +519,10 @@ public class DTORepository<TGameObject>
 	
 	private List<TGameObject> MapDataTable (DataTable table, GameDatabase gameDatabase)
 	{
-		List<TGameObject> allItems = new List<TGameObject>();
+		//List<TGameObject>
+		allItems = new List<TGameObject>();
+		gameObjectForDataRow = new Dictionary<DataRow, TGameObject>();
+		gameObjectForPrimaryKey = new Dictionary<SortedDictionary<string, object>, TGameObject>(new PrimaryKeyComparer());
 		
 		if (primaryKeyPropertyNames.Count == 0)
 		{

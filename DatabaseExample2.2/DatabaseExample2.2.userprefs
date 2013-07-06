@@ -1,39 +1,33 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\GUIController.cs">
+  <MonoDevelop.Ide.Workbench>
     <Files>
+      <File FileName="Assets\GameDatabase.cs" Line="122" Column="1" />
       <File FileName="Assets\DTORepository.cs" Line="1" Column="1" />
-      <File FileName="Assets\GUIController.cs" Line="12" Column="2" />
-      <File FileName="Assets\GameDatabase.cs" Line="20" Column="26" />
-      <File FileName="Assets\GameItemDbLogic.cs" Line="35" Column="1" />
-      <File FileName="Assets\GameObjectBase.cs" Line="67" Column="1" />
-      <File FileName="Assets\GameItemType.cs" Line="32" Column="12" />
-      <File FileName="Assets\GameItemTypeDbLogic.cs" Line="25" Column="1" />
-      <File FileName="Assets\IDTODbLogic.cs" Line="68" Column="65" />
+      <File FileName="Assets\GUIController.cs" Line="66" Column="1" />
+      <File FileName="Assets\GameItemTypeDbLogic.cs" Line="146" Column="1" />
+      <File FileName="Assets\GameItemDbLogic.cs" Line="131" Column="1" />
+      <File FileName="Assets\PrimaryKeyComparer.cs" Line="53" Column="1" />
+      <File FileName="Assets\GameObjectBase.cs" Line="73" Column="1" />
     </Files>
     <Pads>
       <Pad Id="ProjectPad">
         <State expanded="True">
           <Node name="Assembly-CSharp" expanded="True">
-            <Node name="References" expanded="True" />
-            <Node name="Assets" expanded="True">
-              <Node name="GUIController.cs" selected="True" />
+            <Node name="References" expanded="True">
+              <Node name="C:\mlt\src\tapadmincode\tapadmincode-branches\sample_code\DatabaseExample2.2\Assets\Mono.Data.Sqlite.dll" selected="True" />
             </Node>
+            <Node name="Assets" expanded="True" />
           </Node>
-        </State>
-      </Pad>
-      <Pad Id="ClassPad">
-        <State selected="True" />
-      </Pad>
-      <Pad Id="MonoDevelop.Debugger.WatchPad">
-        <State>
-          <Value>row[0]</Value>
         </State>
       </Pad>
     </Pads>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
-    <BreakpointStore />
+    <BreakpointStore>
+      <Breakpoint file="C:\mlt\src\tapadmincode\tapadmincode-branches\sample_code\DatabaseExample2.2\Assets\GUIController.cs" line="24" />
+      <Breakpoint file="C:\mlt\src\tapadmincode\tapadmincode-branches\sample_code\DatabaseExample2.2\Assets\GUIController.cs" line="66" />
+    </BreakpointStore>
   </MonoDevelop.Ide.DebuggingService.Breakpoints>
   <MonoDevelop.Ide.DebuggingService.PinnedWatches />
 </Properties>
