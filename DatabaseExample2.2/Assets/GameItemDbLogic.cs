@@ -28,7 +28,7 @@ public class GameItemDbLogic : IDTODbLogic<GameItem>
 	{
 		if (objectToMap == null) { return; }
 		
-		DTORepository<GameItemType> itemTypeRepository = DTORepository<GameItemType>.GetInstance(new GameItemTypeDbLogic());
+		DTORepository<GameItemType> itemTypeRepository = DTORepository<GameItemType>.GetInstance(); //new GameItemTypeDbLogic());
 		List<GameItemType> itemTypeList = itemTypeRepository.FindAll(gameDatabase);
 		foreach(GameItemType it in itemTypeList)
 		{
@@ -126,8 +126,8 @@ public class GameItemDbLogic : IDTODbLogic<GameItem>
 
 	public void SaveChildObjects (GameItem parentObject, GameDatabase gameDatabase)
 	{
-		GameItemTypeDbLogic gitLogic = new GameItemTypeDbLogic();
-		DTORepository<GameItemType> gitRepo = DTORepository<GameItemType>.GetInstance(gitLogic);
+		//GameItemTypeDbLogic gitLogic = new GameItemTypeDbLogic();
+		DTORepository<GameItemType> gitRepo = DTORepository<GameItemType>.GetInstance(); //gitLogic);
 		gitRepo.SaveAll(gameDatabase);
 	}
 	

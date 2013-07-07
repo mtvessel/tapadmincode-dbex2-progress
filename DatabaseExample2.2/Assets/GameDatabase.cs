@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Text;
 using System.IO;
@@ -28,9 +29,13 @@ public class GameDatabase {
 	}	
 	
 	private Dictionary<Type, DbDataAdapter> cachedDataAdapters = new Dictionary<Type, DbDataAdapter>();
+	private Dictionary<string, ForeignKeyCollection> dbFkCollection = new Dictionary<string, ForeignKeyCollection>();	
+	public Dictionary<string, ForeignKeyCollection> DbFkCollection 
+	{
+		get	{ return this.dbFkCollection; }
+	}	
 	
-	
-	#region public static utility methods
+	#region public utility methods
 	/// <summary>
 	/// Creates a database connection based on the supplied connection string.
 	/// If one already exists for this exact connection string the method returns without creating a new one,
@@ -83,6 +88,8 @@ public class GameDatabase {
 			// clear out any cached data
 			cachedDataAdapters.Clear();
 			
+			BuildForeignKeyMappings();
+			
 		} catch (System.Exception ex) {
 			
 			Debug.LogException(ex);			
@@ -108,15 +115,19 @@ public class GameDatabase {
 	
 	public void SetConnectionFromEmbeddedResource(string resourceName)
 	{
+		// extract in embedded resource into a TextAsset
+		// (see Unity manual entry for TextAsset for more info)
 		TextAsset asset = Resources.Load(resourceName) as TextAsset;
-		//Stream s = new MemoryStream(asset.bytes);		
-		//BinaryReader br = new BinaryReader(s);
 		string resourceFilename = Application.dataPath + "\\" + resourceName;
-		FileStream fs = new FileStream(resourceFilename, FileMode.Create);
-		BinaryWriter wr = new BinaryWriter(fs);
-		wr.Write(asset.bytes);
-		fs.Close();
-		wr.Close();
+		
+		// write out that embedded resource as a file back into its original form 
+		using (FileStream fs = new FileStream(resourceFilename, FileMode.Create))
+		{
+			using (BinaryWriter wr = new BinaryWriter(fs))
+			{
+				wr.Write(asset.bytes);					
+			}			
+		}
 		
 		SetConnection(ConnectionStringFromLocalDBFilename(resourceFilename), SupportedDbType.SQLITE);
 	}
@@ -228,75 +239,19 @@ public class GameDatabase {
 			return cachedDataAdapters[gameObjectType];
 		}
 		
-		string dbTableName = DBNameFromDotNetName(gameObjectType.Name);
+		string dbTableName = DbNameFromDotNetName(gameObjectType.Name);
 		DbDataAdapter adapter = GetDbDataAdapter();
-/*
-		Type adapterType = adapter.GetType();
-		if (adapterType == typeof(SqliteDataAdapter))
-		{			
-			//SqliteDataAdapter.FillSchema is broken, so we gotta roll our own
-			
-			//DataTable schemaTable = GetMinimalSchemaTable (dbTableName);
-			
-//			if (schemaTable == null
-//				|| schemaTable.Rows.Count == 0)
-//			{
-//				return adapter;
-//			}
-			
-			DataTable table = new DataTable(dbTableName);
-			//DataTable schemaTable = null;
-			//using (
-			DbCommand cmd = currentDbConnection.CreateCommand(); //)
-			//{
-				cmd.CommandType = CommandType.Text;
-				cmd.CommandText = "SELECT * FROM " + dbTableName;
-				adapter.SelectCommand = cmd;
-				adapter.FillSchema(table, SchemaType.Source);
-				SqliteCommandBuilder builder = new SqliteCommandBuilder(adapter as SqliteDataAdapter);
-				adapter.InsertCommand = builder.GetInsertCommand();
-				adapter.UpdateCommand = builder.GetUpdateCommand();
-				adapter.DeleteCommand = builder.GetDeleteCommand();
-			//}
-			//BuildAdapterCommands (dbTableName, schemaTable, adapter);
-			
-		}
-		else if (adapterType == typeof(SqlDataAdapter))
-		{
-			DataTable table = new DataTable(dbTableName);
-			using (DbCommand cmd = currentDbConnection.CreateCommand())
-			{
-				cmd.CommandType = CommandType.Text;
-				cmd.CommandText = "SELECT * FROM " + dbTableName;
-				adapter.SelectCommand = cmd;
-				adapter.FillSchema(table, SchemaType.Source);
-				
-//				SqlDataAdapter sqlda = adapter as SqlDataAdapter;
-//				if (sqlda != null)
-//				{
-					// this kinda, sorta works, but we get malformed sql when we call adapter.Update
-					// comment out for now, and try rolling our own params
-				
-//					SqlCommandBuilder builder = new SqlCommandBuilder(adapter);  //sqlda);
-//					adapter.InsertCommand = builder.GetInsertCommand();
-//					adapter.DeleteCommand = builder.GetDeleteCommand();
-//					adapter.UpdateCommand = builder.GetUpdateCommand();
-//					FixupCommandBuilderGeneratedParameters(adapter, table);
-//				}
-//				else
-//				{
-//					throw new InvalidOperationException("Can't seem to cast our SQLDataAdapter as such.  Sorry, no clue.");
-//				}
-				
-				
-			}
-		}
-*/	
 		DataTable table = new DataTable(dbTableName);
 		DbCommand cmd = currentDbConnection.CreateCommand(); //)
 		cmd.CommandType = CommandType.Text;
 		cmd.CommandText = "SELECT * FROM " + dbTableName;
 		adapter.SelectCommand = cmd;
+		
+		// You're supposed to be able to declare a variable using the base type DbAdapter, assign a derived type to it, 
+		// (i.e. SqlDataAdapter, SqliteDataAdapter, etc.), and then any calls to overriden methods are executed by the derived type. 
+		// But I think some methods are not overriden properly.  That is, if they've been declared with the keyword "new" 
+		// rather than "override", you have to cast to the derived type to get the correct method to execute.
+		// I can't remember if this is one of those times, so I'm leaving it in for all the code below. -mt
 		if (adapter is SqlDataAdapter)
 		{
 			((SqlDataAdapter)adapter).FillSchema(table, SchemaType.Source);
@@ -309,10 +264,6 @@ public class GameDatabase {
 		
 		DbCommandBuilder builder = GetCommandBuilder(adapter);
 		
-//		adapter.InsertCommand = builder.GetInsertCommand();
-//		adapter.UpdateCommand = builder.GetUpdateCommand();
-//		adapter.DeleteCommand = builder.GetDeleteCommand();
-
 		SqlCommandBuilder sqlbuilder = builder as SqlCommandBuilder;
 		if (sqlbuilder != null)
 		{
@@ -563,7 +514,7 @@ public class GameDatabase {
 		return schemaTable;			
 	}
 */
-	public string DBNameFromDotNetName (string name)
+	public string DbNameFromDotNetName (string name)
 	{
 		if (string.IsNullOrEmpty(name)) { return ""; }
 		
@@ -585,6 +536,28 @@ public class GameDatabase {
 		}
 		
 		return dbname;
+	}
+	
+	public string DotNetNameFromDbName(string name)
+	{
+		if (string.IsNullOrEmpty(name)) { return ""; }
+		
+		string dotNetName = "";
+		bool nextIsUpper = true;
+		foreach (char c in name)
+		{
+			if (c == '_')
+			{
+				nextIsUpper = true;
+			}
+			else
+			{
+				dotNetName += nextIsUpper ? char.ToUpper(c) : c;
+				nextIsUpper = false;
+			}
+		}
+		
+		return dotNetName;
 	}
 	
 //	public DbCommandBuilder GetDbCommandBuilder()
@@ -670,9 +643,130 @@ public class GameDatabase {
 		return null;
 	}
 	
+	private void BuildForeignKeyMappings()
+	{
+		if (this.currentDbConnection == null)
+		{
+			throw new InvalidOperationException("A SetConnection method must be called first before attempting to retrieve foreign key info.");
+		}
+		
+		dbFkCollection.Clear();
+		
+		UnityEngine.Debug.Log("Retrieving foreign key information...");
+		
+		DataTable fkTable = null;		
+		Type currentDbConnectionType = currentDbConnection.GetType();
+		if (currentDbConnectionType == typeof(SqliteConnection)) 
+		{
+			ConnectionState origState = currentDbConnection.State;
+			try {
+				if (origState != ConnectionState.Open)
+				{
+					currentDbConnection.Open();
+				}
+				
+				fkTable = currentDbConnection.GetSchema("ForeignKeys");
+			} 
+			finally
+			{
+				if (origState == ConnectionState.Closed)
+				{
+					currentDbConnection.Close();	
+				}				
+			}
+			
+		}
+		else
+		{
+			// DataTable fkTable = <some custom query that returns the same thing as sqlite path above>
+			throw new NotImplementedException("Deriving Foreign Key data only implemented for Sqlite so far.");
+		}
+		
+		if (fkTable == null || fkTable.Rows.Count == 0)
+		{
+			UnityEngine.Debug.Log("...no foreign key information found.");		
+			return;
+		}
+
+		var fkConstraintQuery = 
+			from fkTableRow in fkTable.AsEnumerable()
+		    group fkTableRow by new { ConstraintName = fkTableRow["CONSTRAINT_NAME"].ToString(), 
+									  SourceTableName = fkTableRow["TABLE_NAME"].ToString(),
+									  TargetTableName = fkTableRow["FKEY_TO_TABLE"].ToString()	
+									} into constraintGroup
+			select constraintGroup;
+		// NOTE: I wanted to declare the actual columns from the detail row, and give them friendly names/types (like below),
+		// just like I did in the group by clause above, but I just couldn't get it to work in linq. --mt
+		//					select new { SourceColumnName = constraintGroup["FKEY_FROM_COLUMN"].ToString(),
+		//						 		 TargetColumnName = constraintGroup["FKEY_TO_COLUMN"].ToString() };
+		foreach (var constraint in fkConstraintQuery )
+		{
+			ForeignKeyCollection sourceObjectFkColl = null;
+			
+			string sourceTableName = constraint.Key.SourceTableName;
+			string sourceTypeName = DotNetNameFromDbName(sourceTableName);
+			string targetTableName = constraint.Key.TargetTableName;
+			string targetTypeName = DotNetNameFromDbName(targetTableName);
+			
+			ForeignKeyPropertyMappingCollection mappings = new ForeignKeyPropertyMappingCollection(targetTypeName);
+			foreach (var constraintRow in constraint)
+			{
+				string sourceColumnName = constraintRow["FKEY_FROM_COLUMN"].ToString();
+				string sourcePropertyName = DotNetNameFromDbName(sourceColumnName);
+				string targetColumnName = constraintRow["FKEY_TO_COLUMN"].ToString();
+				string targetPropertyName = DotNetNameFromDbName(targetColumnName);
+				mappings.Add(
+					new ForeignKeyPropertyMapping(sourcePropertyName, targetPropertyName));
+			}
+
+			// is there an entry containing foreign key mappings for this object in the master list?
+			if (dbFkCollection.ContainsKey(sourceTypeName))
+			{
+				// yes, this object already has a mapping collection, so just add the current mappings to it
+				sourceObjectFkColl = dbFkCollection[sourceTypeName];
+				sourceObjectFkColl.Add(targetTypeName, mappings);
+			}
+			else
+			{
+				// no, this is a new mapping collection, so create one and add the current set of mappings
+				sourceObjectFkColl = new ForeignKeyCollection(targetTypeName, mappings);
+				// and add it to the master list
+				dbFkCollection.Add(sourceTypeName, sourceObjectFkColl);
+			}
+#if DEBUG			
+			DumpFkCollection(dbFkCollection);
+#endif
+		}		
+		
+		UnityEngine.Debug.Log("...foreign key information mapped.");		
+	}
 	#endregion
 
 	#region test
+	public void DumpFkCollection(Dictionary<string, ForeignKeyCollection> fkcoll)
+	{
+		StringBuilder sb = new StringBuilder();
+		foreach( string typeName in fkcoll.Keys )
+		{
+			sb.AppendFormat("ForeignKeyCollection for Key:{0}", typeName).AppendLine();
+			ForeignKeyCollection coll = fkcoll[typeName];
+			foreach (string propertyName in coll.PropertiesWithForeignKeysMappings)				
+			{
+				sb.AppendFormat("   Mappings for Key:{0}", propertyName).AppendLine();
+				ForeignKeyPropertyMappingCollection mappings = coll[propertyName];
+				foreach (ForeignKeyPropertyMapping mapping in mappings.Mappings)
+				{				
+					sb.AppendFormat("      SourceProperty:{0}, TargetTable{1}, TargetProperty{2}", 
+						mapping.SourceObjectPropertyName, 
+						mapping.TargetObjectKeyPropertyName,
+						mappings.TargetTypeName).AppendLine();
+				}
+			}
+		}
+		
+		UnityEngine.Debug.Log(sb.ToString());
+	}
+	
 	public void PrintAllMetaData()
 	{
 		// TEST AREA!

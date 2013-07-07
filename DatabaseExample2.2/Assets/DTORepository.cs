@@ -68,6 +68,8 @@ public class DTORepository<TGameObject>
 	{
         dbLogic = logicComponent; 			
 	}
+	
+	private DTORepository()	{ }
 
 	/// <summary>
 	/// Gets an instance of a DTORepository for the game object type specified.
@@ -78,19 +80,21 @@ public class DTORepository<TGameObject>
 	/// <param name='logicComponent'>
 	/// A class derived from IDTODbLogic, which encapsulates the specific database-object interactions for a given game object type.
 	/// </param>
-	public static DTORepository<TGameObject> GetInstance(IDTODbLogic<TGameObject> logicComponent)
+	public static DTORepository<TGameObject> GetInstance() //IDTODbLogic<TGameObject> logicComponent)
     {
-		Type logicComponentType = logicComponent.GetType();
-        if (!instancePool.ContainsKey(logicComponentType))
+		//Type logicComponentType = logicComponent.GetType();
+		Type dtoType = typeof(TGameObject);
+        if (!instancePool.ContainsKey(dtoType))  //logicComponentType))
         {
             lock (syncRoot)
             {
-                if (!instancePool.ContainsKey(logicComponentType))
-                    instancePool.Add(logicComponentType, new DTORepository<TGameObject>(logicComponent));
+                if (!instancePool.ContainsKey(dtoType))  //logicComponentType))
+                    instancePool.Add( //logicComponentType, new DTORepository<TGameObject>(logicComponent));
+						dtoType, new DTORepository<TGameObject>());
             }
         }
 
-        return instancePool[logicComponentType];
+        return instancePool[dtoType];  //logicComponentType];
     }
 
 	#endregion singleton instance control 		
@@ -211,7 +215,9 @@ public class DTORepository<TGameObject>
             {
                 dataAdapter.SelectCommand.Connection.Open();
             }
-
+			
+			dataAdapter.MissingSchemaAction = MissingSchemaAction.AddWithKey;
+			dataAdapter.FillSchema(dataTable, SchemaType.Source);
             dataAdapter.Fill(dataTable);
         }
         catch (System.Exception ex)
@@ -340,8 +346,8 @@ public class DTORepository<TGameObject>
             }
             else if (dataAdapter is SqliteDataAdapter )
             {
-				SqliteDataAdapter sqlida = dataAdapter as SqliteDataAdapter;
-                dataAdapter.Update(currentDataTable);
+				SqliteDataAdapter sqliteda = dataAdapter as SqliteDataAdapter;
+                sqliteda.Update(currentDataTable);
             }				
 			
 //			dataAdapter.Update(currentDataTable);
@@ -537,7 +543,8 @@ public class DTORepository<TGameObject>
 			TGameObject newItem = new TGameObject();  //dbLogic.CreateShallowObjectFromDataRow(row);
 			PopulateObjectFromRow(newItem, row);
 			newItem.TableRow = row;
-			dbLogic.PopulateChildObjects(newItem, gameDatabase);
+			//dbLogic.PopulateChildObjects(newItem, gameDatabase);
+			PopulateChildObjects(newItem, gameDatabase);
 			newItem.SetObjectChanged(DataRowState.Unchanged);
 			allItems.Add(newItem);
 			gameObjectForDataRow.Add(row, newItem);
@@ -545,6 +552,93 @@ public class DTORepository<TGameObject>
 		
 		currentDataTable = table;
 		return allItems;
+	}
+
+	void PopulateChildObjects (TGameObject newItem, GameDatabase gameDatabase)
+	{
+		if (newItem == null || gameDatabase == null) { return; }
+		
+		// get all the fks for this game object type
+		Type gameObjectType = typeof(TGameObject);
+		string gameObjectTypeName = gameObjectType.Name;
+		
+		ForeignKeyCollection typeFkcoll = null;
+		if (gameDatabase.DbFkCollection.ContainsKey(gameObjectTypeName))
+		{
+			typeFkcoll = gameDatabase.DbFkCollection[gameObjectTypeName];
+		}
+		
+		// if there are no fk mappings for this object type, just return
+		if ( typeFkcoll == null ) { return; }			
+		
+		// get all the property names that have fk mappings
+		foreach (string propertyToMap in typeFkcoll.PropertiesWithForeignKeysMappings)
+		{
+			// does the type have a writeable, public, instance property that matches the name?
+			PropertyInfo piToPopulate = gameObjectType.GetProperty(propertyToMap, 
+														 BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public);
+			if (piToPopulate == null || piToPopulate.CanWrite == false)
+			{
+				continue;
+			}
+			
+			// We found a property we'd like to populate.  Find out the property's type and get the appropriate repository.
+			Type childObjectType = piToPopulate.PropertyType;
+			
+			// Since we don't know the child object type until run-time, we can't just create an instance of the repository, like this:
+			// (don't uncomment, won't compile)
+			// DTORepository<childObjectType> childObjectRepo = DTORepository<childObjectType>.GetInstance();
+			// Instead, we have to use reflection to have the clr create an instance for us
+			// see http://msdn.microsoft.com/en-us/library/b8ytshk6.aspx for more info
+			Type genericRepoType = typeof(DTORepository<>);
+			Type[] typeArgs = {childObjectType};
+			Type constructedRepoType = genericRepoType.MakeGenericType(typeArgs);
+			//object constructedChildRepo = Activator.CreateInstance(constructedRepoType);
+			MethodInfo getInstanceMi = constructedRepoType.GetMethod("GetInstance", BindingFlags.Static | BindingFlags.Public);
+			object constructedChildRepo = getInstanceMi.Invoke(null, null);
+			
+			MethodInfo genericMi = constructedRepoType.GetMethod("FindByKey");
+			//MethodInfo constructedMi = genericMi.MakeGenericMethod(typeArgs);
+			
+			
+			// next get all the mappings needed to get the right instance of the child object
+			ForeignKeyPropertyMappingCollection mappingsForProperty = typeFkcoll[propertyToMap];
+			SortedDictionary<string, object> childPrimaryKeys = new SortedDictionary<string, object>();
+			bool doFind = true;
+			foreach (ForeignKeyPropertyMapping mapping in mappingsForProperty.Mappings) 
+			{
+				PropertyInfo piKeyValue = gameObjectType.GetProperty(mapping.SourceObjectPropertyName,
+														 BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public);
+				// if we don't have a property to supply the value, don't continue with this mapping
+				if (piKeyValue == null)
+				{
+					doFind = false;
+					break;
+				}
+												
+				object primaryKeyValue = piKeyValue.GetValue(newItem, null);
+				
+				// if we don't have a value for this property, don't continue
+				if (primaryKeyValue == null) 
+				{
+					doFind = false;
+					break;
+				}
+				
+				// add the value for this foreign key property to the target's primary key collection
+				childPrimaryKeys.Add(mapping.TargetObjectKeyPropertyName, primaryKeyValue);									 
+			}
+			
+			if (doFind)
+			{
+				// get the object
+				//object childObject = constructedMi.Invoke(null, new object[] {childPrimaryKeys} );
+				//FindByKey(GameDatabase gameDatabase, SortedDictionary<string, object> keys)
+				object childObject = genericMi.Invoke(constructedChildRepo, new object[] {gameDatabase, childPrimaryKeys} );
+				// convert it to the correct type, and set the target property
+				piToPopulate.SetValue(newItem, Convert.ChangeType(childObject, childObjectType), null);				
+			}			
+		}
 	}
 
 

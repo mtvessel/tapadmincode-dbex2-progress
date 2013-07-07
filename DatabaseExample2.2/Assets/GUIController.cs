@@ -40,8 +40,8 @@ public class GUIController : MonoBehaviour {
 		
 		
 		// set up the item repository, which the gui will need to instantiate GameItems using db data
-		IDTODbLogic<GameItem> gameItemDbLogic = new GameItemDbLogic();			
-		itemRepository = DTORepository<GameItem>.GetInstance(gameItemDbLogic);
+		//IDTODbLogic<GameItem> gameItemDbLogic = new GameItemDbLogic();			
+		itemRepository = DTORepository<GameItem>.GetInstance(); //gameItemDbLogic);
 	}
 
 	// Update is called once per frame
@@ -91,11 +91,11 @@ public class GUIController : MonoBehaviour {
 			}
 			else
 			{
-				GameItemTypeDbLogic itemTypeLogic = new GameItemTypeDbLogic();
-				DTORepository<GameItemType> itemTypeRepo = DTORepository<GameItemType>.GetInstance(itemTypeLogic);
+				//GameItemTypeDbLogic itemTypeLogic = new GameItemTypeDbLogic();
+				DTORepository<GameItemType> itemTypeRepo = DTORepository<GameItemType>.GetInstance(); //itemTypeLogic);
 				GameItemType myItemType = //itemRepository.AllItems[0].GameItemType;
 					itemTypeRepo.FindByKey(gameDatabase,
-										   new SortedDictionary<string, object>() { {"GameItemTypeCd","CORE"} });				
+										   new SortedDictionary<string, object>() { {"GameItemTypeCd","CORE      "} });				
 				
 				if (myItemType != null)
 				{

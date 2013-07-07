@@ -18,7 +18,7 @@
 	<DebugType>full</DebugType>
 	<Optimize>false</Optimize>
 	<OutputPath>Temp\bin\Debug\</OutputPath>
-	<DefineConstants>DEBUG;TRACE;UNITY_STANDALONE_WIN;ENABLE_MICROPHONE;ENABLE_IMAGEEFFECTS;ENABLE_WEBCAM;ENABLE_AUDIO_FMOD;UNITY_STANDALONE;ENABLE_NETWORK;ENABLE_MONO;ENABLE_PHYSICS;ENABLE_TERRAIN;ENABLE_CACHING;ENABLE_SUBSTANCE;ENABLE_GENERICS;ENABLE_CLOTH;ENABLE_MOVIES;ENABLE_AUDIO;ENABLE_WWW;ENABLE_SHADOWS;ENABLE_DUCK_TYPING;UNITY_4_1_5;UNITY_4_1;DEVELOPMENT_BUILD;ENABLE_PROFILER;UNITY_EDITOR</DefineConstants>
+	<DefineConstants>DEBUG;TRACE;UNITY_STANDALONE_WIN;ENABLE_MICROPHONE;ENABLE_IMAGEEFFECTS;ENABLE_WEBCAM;ENABLE_AUDIO_FMOD;UNITY_STANDALONE;ENABLE_NETWORK;ENABLE_MONO;ENABLE_PHYSICS;ENABLE_TERRAIN;ENABLE_CACHING;ENABLE_SUBSTANCE;ENABLE_GENERICS;ENABLE_CLOTH;ENABLE_MOVIES;ENABLE_AUDIO;ENABLE_WWW;ENABLE_SHADOWS;ENABLE_DUCK_TYPING;UNITY_4_1_5;UNITY_4_1;DEVELOPMENT_BUILD;ENABLE_PROFILER;UNITY_EDITOR;DEBUG</DefineConstants>
 	<ErrorReport>prompt</ErrorReport>
 	<WarningLevel>4</WarningLevel>
 	<NoWarn>0169</NoWarn>
@@ -45,6 +45,9 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets\DTORepository.cs" />
+     <Compile Include="Assets\ForeignKeyCollection.cs" />
+     <Compile Include="Assets\ForeignKeyPropertyMapping.cs" />
+     <Compile Include="Assets\ForeignKeyPropertyMappingCollection.cs" />
      <Compile Include="Assets\GUIController.cs" />
      <Compile Include="Assets\GameDatabase.cs" />
      <Compile Include="Assets\GameItem.cs" />
@@ -60,6 +63,12 @@
  </Reference>
  <Reference Include="System.Configuration">
  <HintPath>Assets\System.Configuration.dll</HintPath>
+ </Reference>
+ <Reference Include="System.Core">
+ <HintPath>Assets\System.Core.dll</HintPath>
+ </Reference>
+ <Reference Include="System.Data.DataSetExtensions">
+ <HintPath>Assets\System.Data.DataSetExtensions.dll</HintPath>
  </Reference>
  <Reference Include="System.Data">
  <HintPath>Assets\System.Data.dll</HintPath>
