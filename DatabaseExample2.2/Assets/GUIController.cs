@@ -21,7 +21,7 @@ public class GUIController : MonoBehaviour {
 		// initialize database
 		try
 		{
-			gameDatabase = new GameDatabase(); //ScriptableObject.CreateInstance<GameDatabase>();
+			gameDatabase = new GameDatabase();
 			gameDatabase.SetDefaultConnection();
 			
 			if (gameDatabase.CurrentDbConnection == null)
@@ -40,8 +40,7 @@ public class GUIController : MonoBehaviour {
 		
 		
 		// set up the item repository, which the gui will need to instantiate GameItems using db data
-		//IDTODbLogic<GameItem> gameItemDbLogic = new GameItemDbLogic();			
-		itemRepository = DTORepository<GameItem>.GetInstance(); //gameItemDbLogic);
+		itemRepository = DTORepository<GameItem>.GetInstance();
 	}
 
 	// Update is called once per frame
@@ -91,25 +90,19 @@ public class GUIController : MonoBehaviour {
 			}
 			else
 			{
-				//GameItemTypeDbLogic itemTypeLogic = new GameItemTypeDbLogic();
 				DTORepository<GameItemType> itemTypeRepo = DTORepository<GameItemType>.GetInstance(); //itemTypeLogic);
-				GameItemType myItemType = //itemRepository.AllItems[0].GameItemType;
+				GameItemType myItemType =
 					itemTypeRepo.FindByKey(gameDatabase,
-										   new SortedDictionary<string, object>() { {"GameItemTypeCd","CORE      "} });				
+										   new SortedDictionary<string, object>() { {"GameItemTypeCd","CORE"} });				
 				
 				if (myItemType != null)
 				{
-					// update it
-					//coreItemType.BodyPartWornCd = "Nose";
-					string oldval = string.IsNullOrEmpty(myItemType.BodyPartWornCd) ? "a" : myItemType.BodyPartWornCd;
-					char c1 = oldval[0];
-					char c2 = (char)((int)c1 + 1);
-					string newval = oldval.Replace(c1, c2);
+					string oldval = myItemType.BodyPartWornCd;
+					string newval = ChangeValueToSomethingDifferent(oldval);
 					myItemType.BodyPartWornCd = newval;
-					Debug.Log(string.Format("Updating item type {0} body part worm from {1} to {2}", myItemType.GameItemTypeCd, oldval, newval));
+					Debug.Log(string.Format("Updating item type {0} body part worn from {1} to {2}", myItemType.GameItemTypeCd, oldval, newval));
 					
 					itemRepository.SaveAll(gameDatabase);
-					//itemRepository.FindAll(gameDatabase);
 					
 					top += buttonHeight + padding;
 					DisplayInventory(left, top, width, labelHeight, padding);
@@ -119,7 +112,56 @@ public class GUIController : MonoBehaviour {
 					Debug.Log("No item with item type CORE found.");
 				}
 			}
-		}		
+		}
+		
+		top += buttonHeight + padding;		
+		if (GUI.Button (new Rect (left, top, width, buttonHeight), "Click to add a whole new item type"))
+		{
+			if (itemRepository == null || itemRepository.AllItems == null || itemRepository.AllItems.Count == 0)
+			{
+				Debug.Log("No items to update.");				
+			}
+			else
+			{
+				DTORepository<GameItemType> itemTypeRepo = DTORepository<GameItemType>.GetInstance(); //itemTypeLogic);
+				GameItemType myItemType =
+					itemTypeRepo.FindByKey(gameDatabase,
+										   new SortedDictionary<string, object>() { {"GameItemTypeCd","CORE"} });				
+				
+				if (myItemType != null)
+				{
+					string newval = ChangeValueToSomethingDifferent(myItemType.GameItemTypeCd);
+					GameItemType newItemType = itemTypeRepo.CreateNewObject();
+					newItemType.GameItemTypeCd = newval;
+					newItemType.GameItemDescription = "a dynamically constructed item type";
+					newItemType.CanHeal = 1;
+					newItemType.BodyPartWornCd = "toes";
+					
+					GameItem gameItemToChange = itemRepository.AllItems[0];
+					gameItemToChange.GameItemType = newItemType;
+					Debug.Log(string.Format("Updating item {0} with new item type {1}", gameItemToChange.GameItemTypeCd, newval));
+					
+					itemRepository.SaveAll(gameDatabase);
+					
+					top += buttonHeight + padding;
+					DisplayInventory(left, top, width, labelHeight, padding);
+				}
+				else
+				{
+					Debug.Log("No item with item type CORE found.");
+				}
+			}			
+		}
+
+	}
+
+	string ChangeValueToSomethingDifferent (string stringToChange)
+	{
+		// update it to something different, doesn't matter what -- we're just testing the update
+		string oldval = string.IsNullOrEmpty(stringToChange) ? "a" : stringToChange;
+		char c1 = oldval[0];
+		char c2 = (char)((int)c1 + 1);
+		return oldval.Replace(c1, c2);
 	}
 
     void DisplayInventory (int left, int top, int width, int labelHeight, int padding)

@@ -1,13 +1,17 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\DTORepository.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\GameObjectBase.cs">
     <Files>
-      <File FileName="Assets\GameDatabase.cs" Line="730" Column="5" />
-      <File FileName="Assets\GUIController.cs" Line="75" Column="54" />
-      <File FileName="Assets\DTORepository.cs" Line="593" Column="1" />
+      <File FileName="Assets\GameDatabase.cs" Line="394" Column="2" />
+      <File FileName="Assets\GUIController.cs" Line="144" Column="1" />
+      <File FileName="Assets\DTORepository.cs" Line="202" Column="1" />
       <File FileName="Assets\ForeignKeyCollection.cs" Line="56" Column="2" />
       <File FileName="Assets\ForeignKeyPropertyMappingCollection.cs" Line="21" Column="3" />
       <File FileName="Assets\ForeignKeyPropertyMapping.cs" Line="10" Column="3" />
+      <File FileName="Assets\GameItem.cs" Line="1" Column="1" />
+      <File FileName="Assets\GameItemType.cs" Line="1" Column="1" />
+      <File FileName="Assets\GameObjectBase.cs" Line="35" Column="1" />
+      <File FileName="Assets\PrimaryKeyComparer.cs" Line="1" Column="1" />
     </Files>
     <Pads>
       <Pad Id="ProjectPad">
@@ -15,7 +19,7 @@
           <Node name="Assembly-CSharp" expanded="True">
             <Node name="References" expanded="True" />
             <Node name="Assets" expanded="True">
-              <Node name="DTORepository.cs" selected="True" />
+              <Node name="GameObjectBase.cs" selected="True" />
             </Node>
           </Node>
         </State>
@@ -29,10 +33,7 @@
     </Pads>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
-    <BreakpointStore>
-      <Breakpoint file="C:\mlt\src\tapadmincode\tapadmincode-branches\sample_code\DatabaseExample2.2\Assets\DTORepository.cs" line="593" />
-      <Breakpoint file="C:\mlt\src\tapadmincode\tapadmincode-branches\sample_code\DatabaseExample2.2\Assets\DTORepository.cs" line="632" />
-    </BreakpointStore>
+    <BreakpointStore />
   </MonoDevelop.Ide.DebuggingService.Breakpoints>
   <MonoDevelop.Ide.DebuggingService.PinnedWatches>
     <Watch file="Assets\DTORepository.cs" line="217" offsetX="409" offsetY="3250" expression="dataTable.PrimaryKey" liveUpdate="False" />

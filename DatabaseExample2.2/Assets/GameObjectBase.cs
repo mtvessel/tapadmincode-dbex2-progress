@@ -28,6 +28,18 @@ public class GameObjectBase
 		validStates.Add(DataRowState.Unchanged);
 		validStates.Add(DataRowState.Deleted);
 		validStateTransitions.Add(DataRowState.Modified, validStates);
+		
+		// Technically, Detached should only be allowed to go to Added,
+		// but since we're using it as a default, we'll allow it to go to anything.
+		// This shouldn't hurt anything (famous last words).
+		validStates = new List<DataRowState>();
+		validStates.Add(DataRowState.Unchanged);
+		validStates.Add(DataRowState.Deleted);
+		validStates.Add(DataRowState.Added);
+		validStates.Add(DataRowState.Modified);
+		validStateTransitions.Add(DataRowState.Detached, validStates);
+		
+		
 	}
 	
 	#endregion
@@ -36,7 +48,7 @@ public class GameObjectBase
 	{			
 	}
 	
-	DataRowState objectState = DataRowState.Unchanged; // default to Unchanged
+	DataRowState objectState = DataRowState.Detached;
 	public DataRowState ObjectState
 	{
 		get { return objectState; }

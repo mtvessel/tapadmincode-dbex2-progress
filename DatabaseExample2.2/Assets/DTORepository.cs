@@ -28,10 +28,6 @@ public class DTORepository<TGameObject>
 		get { return allItems; }
 	}
 	
-	// dblogic must be provided when a type-specific instance is created
-	private IDTODbLogic<TGameObject> dbLogic = null;
-	
-
 	// currentGameDatabase is the more recent database instance	used to access data
 	private GameDatabase currentGameDatabase = null;		
 	
@@ -64,11 +60,6 @@ public class DTORepository<TGameObject>
     private static object syncRoot = new Object();
 
 	// singleton -- ctor must remain private to prevent direct instantiation
-	private DTORepository(IDTODbLogic<TGameObject> logicComponent)
-	{
-        dbLogic = logicComponent; 			
-	}
-	
 	private DTORepository()	{ }
 
 	/// <summary>
@@ -77,100 +68,24 @@ public class DTORepository<TGameObject>
 	/// <returns>
 	/// The repository to be used with objects of that that game object type
 	/// </returns>
-	/// <param name='logicComponent'>
-	/// A class derived from IDTODbLogic, which encapsulates the specific database-object interactions for a given game object type.
-	/// </param>
-	public static DTORepository<TGameObject> GetInstance() //IDTODbLogic<TGameObject> logicComponent)
+	public static DTORepository<TGameObject> GetInstance()
     {
-		//Type logicComponentType = logicComponent.GetType();
 		Type dtoType = typeof(TGameObject);
-        if (!instancePool.ContainsKey(dtoType))  //logicComponentType))
+        if (!instancePool.ContainsKey(dtoType))
         {
             lock (syncRoot)
             {
-                if (!instancePool.ContainsKey(dtoType))  //logicComponentType))
-                    instancePool.Add( //logicComponentType, new DTORepository<TGameObject>(logicComponent));
-						dtoType, new DTORepository<TGameObject>());
+                if (!instancePool.ContainsKey(dtoType))
+                    instancePool.Add(dtoType, new DTORepository<TGameObject>());
             }
         }
 
-        return instancePool[dtoType];  //logicComponentType];
+        return instancePool[dtoType];
     }
 
 	#endregion singleton instance control 		
 
 	#region public methods
-
-//	DbDataAdapter InitializeDataAdapter(GameDatabase gameDatabase)
-//	{
-//		DbConnection dbConnection = gameDatabase.CurrentDbConnection;			
-//		
-//		try {
-//			if (dbConnection.State != ConnectionState.Open)
-//			{
-//				dbConnection.Open();
-//			}
-//		} catch (System.Exception ex) {
-//			Debug.WriteLine(ex.Message);
-//			throw;
-//		}		
-//		
-//		// Create a command object which we will use to issue a db query
-////		DbCommand cmd = dbConnection.CreateCommand();
-////		cmd.CommandType = CommandType.Text;
-////		cmd.CommandText = dbLogic.SelectStatement;
-//		
-//		// populate a DataTable with the results of the query using a DataAdapter		
-//		DbDataAdapter dataAdapter = gameDatabase.GetDbDataAdapter<TGameObject>();
-//		
-//		if (dataAdapter == null)
-//		{
-//			throw new System.ArgumentException("Unknown database connection type.", "dbConnection");
-//		}
-//		
-////		dataAdapter.SelectCommand = cmd;
-////		DataTable table = new DataTable();
-////		table.TableName = "game_item";
-////		dataAdapter.MissingSchemaAction = MissingSchemaAction.AddWithKey;
-////		DataTable schemaTable = dataAdapter.FillSchema(table, SchemaType.Mapped);
-//		
-//		
-//		// try this instead
-////		DbDataReader reader = cmd.ExecuteReader(CommandBehavior.KeyInfo | CommandBehavior.SchemaOnly);
-////		DataTable schemaTable = reader.GetSchemaTable();
-////		reader.Close();
-//		
-////		int rowCnt = 0;
-////		foreach (DataRow row in table.Rows)
-////		{
-////			rowCnt++;
-////			foreach(DataColumn col in row.Table.Columns)
-////			{
-////				UnityEngine.Debug.Log(String.Format("empty table Row:{0} {1} = {2}", rowCnt, col.ColumnName, row[col].ToString()));
-////			}
-////		}
-////		
-////		rowCnt = 0;
-////		foreach (DataRow row in schemaTable.Rows)
-////		{
-////			rowCnt++;
-////			foreach(DataColumn col in row.Table.Columns)
-////			{
-////				UnityEngine.Debug.Log(String.Format("schema table Row:{0} {1} = {2}", rowCnt, col.ColumnName, row[col].ToString()));
-////			}
-////		}
-//		
-////		DbCommandBuilder builder = gameDatabase.GetDbCommandBuilder();
-////		builder.DataAdapter = dataAdapter;
-////		builder.RefreshSchema();
-////		dataAdapter.DeleteCommand = builder.GetDeleteCommand();
-////		dataAdapter.UpdateCommand = builder.GetUpdateCommand();
-////		dataAdapter.InsertCommand = builder.GetInsertCommand();
-//		
-//		currentDataAdapter = dataAdapter;
-//		
-//		return dataAdapter;
-//	}
 	
 	/// <summary>
 	/// Finds all objects of a given type.
@@ -303,8 +218,8 @@ public class DTORepository<TGameObject>
 			foreach (TGameObject item in this.allItems) 
 			{
 				if (wouldYouGiveUpTheCostOfACupOfCoffeeToSaveTheChildren)
-				{					
-					dbLogic.SaveChildObjects(item, gameDatabase);
+				{						
+					SaveChildObjects(gameDatabase, item);
 					// children only need to be saved once (...for they are blameless in the eyes of the Lord)
 					wouldYouGiveUpTheCostOfACupOfCoffeeToSaveTheChildren = false;
 				}
@@ -338,7 +253,9 @@ public class DTORepository<TGameObject>
             {
                 dataAdapter.SelectCommand.Connection.Open();
             }
-
+			
+			// Just like in GameDatabase, I'm not sure if calling .Update on the 
+			// subtype is necessary, but since data adapters are flaky, we'll do it that way here, too.  -mt
             if (dataAdapter is SqlDataAdapter)
             {
                 SqlDataAdapter sqlda = dataAdapter as SqlDataAdapter;
@@ -349,8 +266,6 @@ public class DTORepository<TGameObject>
 				SqliteDataAdapter sqliteda = dataAdapter as SqliteDataAdapter;
                 sqliteda.Update(currentDataTable);
             }				
-			
-//			dataAdapter.Update(currentDataTable);
 		}
 		catch (System.Exception ex)
 		{
@@ -372,36 +287,29 @@ public class DTORepository<TGameObject>
 		
 		return allItems;
 	}
-/*
-	void HandleSqlidaRowUpdated (object sender, RowUpdatedEventArgs e)
-	{
-		UnityEngine.Debug.Log("Row Updated.");
-	}
 
-	void HandleSqlidaRowUpdating (object sender, RowUpdatingEventArgs e)
+	public void SaveChildObjects (GameDatabase gameDatabase, TGameObject item)
 	{
-		UnityEngine.Debug.Log(string.Format("Row Updating Event: {0}={1}", "e.Command.CommandText", e.Command.CommandText));
-		if (e.Command.Parameters == null)
-		{ 
-			UnityEngine.Debug.Log(string.Format("Parameters collection is null."));			
-		}
-		else
+		if (gameDatabase == null) { return; }
+	
+		// get all child properties
+		Type itemType = item.GetType();
+		PropertyInfo[] itemProperties = itemType.GetProperties(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Public);
+		foreach (PropertyInfo pi in itemProperties)
 		{
-			foreach (DbParameter param in e.Command.Parameters)
+			// only interested in properties whose type is derived from GameObjectBase
+			if (pi.PropertyType.IsSubclassOf(typeof(GameObjectBase)))
 			{
-				string paramName = param.ParameterName == null ? "<null>" : param.ParameterName;
-				string paramVal = param.Value == null ? "<null>" : param.Value.ToString();
-				UnityEngine.Debug.Log(string.Format("Parameter: {0}={1}", paramName, paramVal));
-				UnityEngine.Debug.Log(string.Format("Parameter: {0}: DbType={1} Size={2}", paramName, param.DbType, param.Size));			
-			}				
-		}
-		UnityEngine.Debug.Log(string.Format("Row Updating Event: {0}={1}", "e.StatementType", e.StatementType));
-		UnityEngine.Debug.Log(string.Format("Row Updating Event: {0}={1}", "e.Status", e.Status));
-		UnityEngine.Debug.Log(string.Format("Row Updating Event: {0}={1}", "e.TableMapping.SourceTable", e.TableMapping.SourceTable));
-		UnityEngine.Debug.Log(string.Format("Row Updating Event: {0}={1}", "e.TableMapping.DataSetTable", e.TableMapping.DataSetTable));
-		UnityEngine.Debug.Log(string.Format("Row Updating Event: {0}={1}", "e.Row[0]", e.Row[0]));
+				// construct a repository for this type
+				object constructedRepo = ConstructRepositoryforType(pi.PropertyType);
+				Type constructedRepoType = constructedRepo.GetType();
+				// get and invoke the SaveAll method
+				MethodInfo saveAllMi = constructedRepoType.GetMethod("SaveAll");
+				saveAllMi.Invoke(constructedRepo, new object[] {gameDatabase});
+			}
+		}			
 	}
-*/
+	
 	private void PopulateObjectFromRow (TGameObject item, DataRow tableRow)
 	{
 		if (propertyInfoForColumnName == null || propertyInfoForColumnName.Count == 0)
@@ -416,7 +324,6 @@ public class DTORepository<TGameObject>
 
 		SortedDictionary<string, object> primaryKeyValues = new SortedDictionary<string, object>();
 		
-		//Type gameObjectType = item.GetType();
 		foreach (string colname in propertyInfoForColumnName.Keys) 
 		{			
 			PropertyInfo targetPropertyInfo = propertyInfoForColumnName[colname];
@@ -427,7 +334,6 @@ public class DTORepository<TGameObject>
 				primaryKeyValues.Add(targetPropertyInfo.Name, propertyValue);
 			}
 		}
-		
 		
 		if (primaryKeyValues.Count > 0)
 		{
@@ -525,7 +431,6 @@ public class DTORepository<TGameObject>
 	
 	private List<TGameObject> MapDataTable (DataTable table, GameDatabase gameDatabase)
 	{
-		//List<TGameObject>
 		allItems = new List<TGameObject>();
 		gameObjectForDataRow = new Dictionary<DataRow, TGameObject>();
 		gameObjectForPrimaryKey = new Dictionary<SortedDictionary<string, object>, TGameObject>(new PrimaryKeyComparer());
@@ -540,10 +445,9 @@ public class DTORepository<TGameObject>
 		// repository calls.
 		foreach (DataRow row in table.Rows)
 		{
-			TGameObject newItem = new TGameObject();  //dbLogic.CreateShallowObjectFromDataRow(row);
+			TGameObject newItem = new TGameObject();
 			PopulateObjectFromRow(newItem, row);
 			newItem.TableRow = row;
-			//dbLogic.PopulateChildObjects(newItem, gameDatabase);
 			PopulateChildObjects(newItem, gameDatabase);
 			newItem.SetObjectChanged(DataRowState.Unchanged);
 			allItems.Add(newItem);
@@ -582,24 +486,11 @@ public class DTORepository<TGameObject>
 				continue;
 			}
 			
-			// We found a property we'd like to populate.  Find out the property's type and get the appropriate repository.
-			Type childObjectType = piToPopulate.PropertyType;
-			
-			// Since we don't know the child object type until run-time, we can't just create an instance of the repository, like this:
-			// (don't uncomment, won't compile)
-			// DTORepository<childObjectType> childObjectRepo = DTORepository<childObjectType>.GetInstance();
-			// Instead, we have to use reflection to have the clr create an instance for us
-			// see http://msdn.microsoft.com/en-us/library/b8ytshk6.aspx for more info
-			Type genericRepoType = typeof(DTORepository<>);
-			Type[] typeArgs = {childObjectType};
-			Type constructedRepoType = genericRepoType.MakeGenericType(typeArgs);
-			//object constructedChildRepo = Activator.CreateInstance(constructedRepoType);
-			MethodInfo getInstanceMi = constructedRepoType.GetMethod("GetInstance", BindingFlags.Static | BindingFlags.Public);
-			object constructedChildRepo = getInstanceMi.Invoke(null, null);
-			
-			MethodInfo genericMi = constructedRepoType.GetMethod("FindByKey");
-			//MethodInfo constructedMi = genericMi.MakeGenericMethod(typeArgs);
-			
+			// We found a property we'd like to populate.
+			// Get the appropriate repository for the property's type, and that repository's FindByKey method
+			object constructedChildRepo = ConstructRepositoryforType(piToPopulate.PropertyType);
+			Type constructedRepoType = constructedChildRepo.GetType();
+			MethodInfo findByKeyMi = constructedRepoType.GetMethod("FindByKey");
 			
 			// next get all the mappings needed to get the right instance of the child object
 			ForeignKeyPropertyMappingCollection mappingsForProperty = typeFkcoll[propertyToMap];
@@ -631,14 +522,28 @@ public class DTORepository<TGameObject>
 			
 			if (doFind)
 			{
-				// get the object
-				//object childObject = constructedMi.Invoke(null, new object[] {childPrimaryKeys} );
-				//FindByKey(GameDatabase gameDatabase, SortedDictionary<string, object> keys)
-				object childObject = genericMi.Invoke(constructedChildRepo, new object[] {gameDatabase, childPrimaryKeys} );
+				// get the object by calling the constructed version of
+				//  FindByKey(GameDatabase gameDatabase, SortedDictionary<string, object> keys)
+				object childObject = findByKeyMi.Invoke(constructedChildRepo, new object[] {gameDatabase, childPrimaryKeys} );
 				// convert it to the correct type, and set the target property
-				piToPopulate.SetValue(newItem, Convert.ChangeType(childObject, childObjectType), null);				
+				piToPopulate.SetValue(newItem, Convert.ChangeType(childObject, piToPopulate.PropertyType), null);				
 			}			
 		}
+	}
+
+	private object ConstructRepositoryforType (Type typeToGetRepositoryFor)
+	{				
+		// Since we don't know the child object type until run-time, we can't just create an instance of the repository, like this:
+		// (don't uncomment, won't compile)
+		// DTORepository<childObjectType> childObjectRepo = DTORepository<childObjectType>.GetInstance();
+		// Instead, we have to use reflection to have the clr create an instance for us
+		// see http://msdn.microsoft.com/en-us/library/b8ytshk6.aspx for more info
+
+		Type genericRepoType = typeof(DTORepository<>);
+		Type[] typeArgs = {typeToGetRepositoryFor};
+		Type constructedRepoType = genericRepoType.MakeGenericType(typeArgs);
+		MethodInfo getInstanceMi = constructedRepoType.GetMethod("GetInstance", BindingFlags.Static | BindingFlags.Public);
+		return getInstanceMi.Invoke(null, null);
 	}
 
 
