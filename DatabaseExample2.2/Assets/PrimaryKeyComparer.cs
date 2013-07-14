@@ -31,7 +31,7 @@ public class PrimaryKeyComparer : EqualityComparer<SortedDictionary<string, obje
 				break;
 			}
 			
-			if ( x[xitem.Key].ToString() != y[xitem.Key].ToString() )
+			if ( !(x[xitem.Key].ToString().Equals(y[xitem.Key].ToString())) )
 			{
 				isEqual = false;
 				break;

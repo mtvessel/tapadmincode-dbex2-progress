@@ -131,6 +131,40 @@ public class GameDatabase {
 		
 		SetConnection(ConnectionStringFromLocalDBFilename(resourceFilename), SupportedDbType.SQLITE);
 	}
+
+	public void TurnOnSqliteForeignKeySupport()
+	{
+		// For historical reasons, foreing key support is not automatically turned on for sqlite.
+		// If it is desired (and it is), it must be turned on manually.
+		// NOTE: This must be done every time the connection is opened, so it is intentionally left open here.
+		// For this reason, it's best to only call this method right before doing a save.
+		if (currentDbConnection != null
+			&& currentDbConnection is SqliteConnection
+			)
+		try 
+		{
+			if (currentDbConnection.State != ConnectionState.Open)
+			{
+				currentDbConnection.Open();
+			}
+			DbCommand cmd = currentDbConnection.CreateCommand();
+			cmd.CommandType = CommandType.Text;
+			cmd.CommandText = "PRAGMA foreign_keys = ON";
+			cmd.ExecuteNonQuery();
+			cmd.CommandText = "PRAGMA foreign_keys";
+			object fkStatus = cmd.ExecuteScalar();
+			Debug.Log("Turning SQLite foreign key support on. PRAGMA foreign keys returned: " + fkStatus.ToString());
+			if (int.Parse(fkStatus.ToString()) != 1)
+			{
+				throw new InvalidDataException("Foreign key support for this SQLite database cannot be turned on.");
+			}											
+		}
+		catch (Exception ex)
+		{
+			Debug.LogException(ex);
+			throw;
+		}
+	}
 		
 	/// <summary>
 	/// Gets the appropriate, empty DbDataAdaptor for the current connection.
@@ -175,9 +209,10 @@ public class GameDatabase {
 
 	void HandleSqlitedaRowUpdating (object sender, RowUpdatingEventArgs e)
 	{
-#if DEBUG
-		LogRowUpdatingEvent(e);		
-#endif
+		// can be used for debugging db commands, but throws exceptions on deletes, so uncomment at your own risk!
+//#if DEBUG
+//		LogRowUpdatingEvent(e);		
+//#endif
 	}
 
 	void HandleSqldaRowUpdated (object sender, SqlRowUpdatedEventArgs e)
@@ -187,9 +222,10 @@ public class GameDatabase {
 
 	void HandleSqldaRowUpdating (object sender, SqlRowUpdatingEventArgs e)
 	{	
-#if DEBUG
-		LogRowUpdatingEvent(e);		
-#endif
+		// can be used for debugging db commands, but throws exceptions on deletes, so uncomment at your own risk!
+//#if DEBUG
+//		LogRowUpdatingEvent(e);		
+//#endif
 	}
 
 	static void LogRowUpdatingEvent (RowUpdatingEventArgs e)
@@ -451,8 +487,27 @@ public class GameDatabase {
 		}
 		else
 		{
-			// DataTable fkTable = <some custom query that returns the same thing as sqlite path above>
-			throw new NotImplementedException("Deriving Foreign Key data only implemented for Sqlite so far.");
+            DbCommand cmd = currentDbConnection.CreateCommand();
+            cmd.CommandType = CommandType.Text;
+            cmd.CommandText = 
+                "select " +
+                "        fk.Name AS FKEY_ID, " +
+                "        OBJECT_NAME(fk.parent_object_id) as TABLE_NAME, " +
+                "        OBJECT_NAME(fk.referenced_object_id) as FKEY_TO_TABLE, " +
+                "        cpa.name as FKEY_FROM_COLUMN, " +
+                "        cref.name as FKEY_TO_COLUMN " +
+                "    FROM " +
+                "        sys.foreign_keys fk " +
+                "    INNER JOIN " +
+                "        sys.foreign_key_columns fkc ON fkc.constraint_object_id = fk.object_id " +
+                "    INNER JOIN " +
+                "        sys.columns cpa ON fkc.parent_object_id = cpa.object_id AND fkc.parent_column_id = cpa.column_id " +
+                "    INNER JOIN  " +
+                "        sys.columns cref ON fkc.referenced_object_id = cref.object_id AND fkc.referenced_column_id = cref.column_id ";
+            DbDataAdapter fkadapter = GetDbDataAdapter();
+            fkadapter.SelectCommand = cmd;
+            fkTable = new DataTable();
+            fkadapter.Fill(fkTable);
 		}
 		
 		if (fkTable == null || fkTable.Rows.Count == 0)

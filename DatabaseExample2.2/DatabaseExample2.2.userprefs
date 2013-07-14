@@ -1,25 +1,20 @@
 ﻿<Properties>
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\GameObjectBase.cs">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Assets\DTORepository.cs">
     <Files>
-      <File FileName="Assets\GameDatabase.cs" Line="394" Column="2" />
-      <File FileName="Assets\GUIController.cs" Line="144" Column="1" />
-      <File FileName="Assets\DTORepository.cs" Line="202" Column="1" />
-      <File FileName="Assets\ForeignKeyCollection.cs" Line="56" Column="2" />
-      <File FileName="Assets\ForeignKeyPropertyMappingCollection.cs" Line="21" Column="3" />
-      <File FileName="Assets\ForeignKeyPropertyMapping.cs" Line="10" Column="3" />
-      <File FileName="Assets\GameItem.cs" Line="1" Column="1" />
-      <File FileName="Assets\GameItemType.cs" Line="1" Column="1" />
-      <File FileName="Assets\GameObjectBase.cs" Line="35" Column="1" />
-      <File FileName="Assets\PrimaryKeyComparer.cs" Line="1" Column="1" />
+      <File FileName="Assets\GameDatabase.cs" Line="112" Column="1" />
+      <File FileName="Assets\GUIController.cs" Line="109" Column="1" />
+      <File FileName="Assets\DTORepository.cs" Line="273" Column="1" />
+      <File FileName="Assets\PrimaryKeyComparer.cs" Line="41" Column="1" />
+      <File FileName="Assets\GameObjectBase.cs" Line="122" Column="1" />
+      <File FileName="Assets\GameItem.cs" Line="39" Column="1" />
     </Files>
     <Pads>
       <Pad Id="ProjectPad">
         <State expanded="True">
           <Node name="Assembly-CSharp" expanded="True">
-            <Node name="References" expanded="True" />
             <Node name="Assets" expanded="True">
-              <Node name="GameObjectBase.cs" selected="True" />
+              <Node name="DTORepository.cs" selected="True" />
             </Node>
           </Node>
         </State>
@@ -28,7 +23,9 @@
         <State expanded="True" selected="True" />
       </Pad>
       <Pad Id="MonoDevelop.Debugger.WatchPad">
-        <State />
+        <State>
+          <Value>item.GameItemType == itemType</Value>
+        </State>
       </Pad>
     </Pads>
   </MonoDevelop.Ide.Workbench>
@@ -36,6 +33,8 @@
     <BreakpointStore />
   </MonoDevelop.Ide.DebuggingService.Breakpoints>
   <MonoDevelop.Ide.DebuggingService.PinnedWatches>
-    <Watch file="Assets\DTORepository.cs" line="217" offsetX="409" offsetY="3250" expression="dataTable.PrimaryKey" liveUpdate="False" />
+    <Watch file="Assets\GUIController.cs" line="184" offsetX="515" offsetY="2804" expression="itemType.GameItemTypeCd" liveUpdate="False" />
+    <Watch file="Assets\GUIController.cs" line="184" offsetX="516" offsetY="2849" expression="item.GameItemType.GameItemTypeCd" liveUpdate="False" />
+    <Watch file="Assets\GUIController.cs" line="186" offsetX="547" offsetY="2901" expression="inUse" liveUpdate="False" />
   </MonoDevelop.Ide.DebuggingService.PinnedWatches>
 </Properties>

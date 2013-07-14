@@ -85,4 +85,40 @@ public class GameObjectBase
 		get { return tableRow; }
 		set { tableRow = value; }
 	}
+	
+	Dictionary<SortedDictionary<string, object>, GameObjectBase> primaryKeyValues;
+	public Dictionary<SortedDictionary<string, object>, GameObjectBase> PrimaryKeyValues {
+		get {
+			return this.primaryKeyValues;
+		}
+		set {
+			primaryKeyValues = value;
+		}
+	}
+	
+	public override bool Equals (object obj)
+	{
+		if (obj == null 
+			|| obj.GetType() != GetType())
+		{
+			return false;
+		}
+		
+		GameObjectBase other = obj as GameObjectBase;
+		if (primaryKeyValues == null
+			|| other.primaryKeyValues == null
+			|| primaryKeyValues.Count != other.primaryKeyValues.Count)
+		{
+			return false;
+		}
+
+		foreach (SortedDictionary<string, object> key in other.primaryKeyValues.Keys)
+		{
+			if (!primaryKeyValues.ContainsKey(key))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
 }

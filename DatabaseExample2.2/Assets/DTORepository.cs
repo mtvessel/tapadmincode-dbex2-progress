@@ -240,6 +240,10 @@ public class DTORepository<TGameObject>
 					break;
 				case DataRowState.Deleted:
 					item.TableRow.Delete();
+					bool hasOrig = item.TableRow.HasVersion(DataRowVersion.Original);
+					bool hasCur = item.TableRow.HasVersion(DataRowVersion.Current);
+					bool hasDflt = item.TableRow.HasVersion(DataRowVersion.Default);
+					bool hasPrp = item.TableRow.HasVersion(DataRowVersion.Proposed);
 					break;
 				case DataRowState.Modified:
 					PopulateRowFromObject(item, item.TableRow);
@@ -263,6 +267,7 @@ public class DTORepository<TGameObject>
             }
             else if (dataAdapter is SqliteDataAdapter )
             {
+				currentGameDatabase.TurnOnSqliteForeignKeySupport();
 				SqliteDataAdapter sqliteda = dataAdapter as SqliteDataAdapter;
                 sqliteda.Update(currentDataTable);
             }				
@@ -338,6 +343,8 @@ public class DTORepository<TGameObject>
 		if (primaryKeyValues.Count > 0)
 		{
 			gameObjectForPrimaryKey.Add(primaryKeyValues, item);
+			item.PrimaryKeyValues = new Dictionary<SortedDictionary<string, object>, GameObjectBase>(new PrimaryKeyComparer());
+			item.PrimaryKeyValues.Add(primaryKeyValues, item);
 		}
 	}
 
@@ -525,6 +532,10 @@ public class DTORepository<TGameObject>
 				// get the object by calling the constructed version of
 				//  FindByKey(GameDatabase gameDatabase, SortedDictionary<string, object> keys)
 				object childObject = findByKeyMi.Invoke(constructedChildRepo, new object[] {gameDatabase, childPrimaryKeys} );
+				if (childObject == null)
+				{
+					throw new DataException(string.Format("Missing child object for {0}.{1}.", gameObjectTypeName, piToPopulate.Name));
+				}
 				// convert it to the correct type, and set the target property
 				piToPopulate.SetValue(newItem, Convert.ChangeType(childObject, piToPopulate.PropertyType), null);				
 			}			

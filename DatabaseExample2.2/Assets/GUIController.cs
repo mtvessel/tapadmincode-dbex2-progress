@@ -9,6 +9,8 @@ public class GUIController : MonoBehaviour {
 
 	private GameDatabase gameDatabase = null;
 	private DTORepository<GameItem> itemRepository = null;
+	private int padding = 15;
+	
 	
 	// Use this for initialization
 	void Start () {		
@@ -49,40 +51,42 @@ public class GUIController : MonoBehaviour {
 	}
 	
 	void OnGUI () {
-		int left = 10;
-		int top = 10;
-		int width = 640;
-		int labelHeight = 20;
-		int padding = 5;
-		int buttonHeight = labelHeight * 2;
+		int padding = 15;
+		float runningHeightTotal = 0;
 				
-		if (GUI.Button (new Rect (left, top, width, buttonHeight), "Click to print connection metatdata")) {							
+		GUILayout.BeginArea(new Rect(0, 0, Screen.width - padding, Screen.height /4), new GUIStyle());
+
+		string buttonText = "Click to print connection metatdata";
+		runningHeightTotal += GUI.skin.button.CalcHeight(new GUIContent(buttonText), Screen.width - padding);
+		if (GUILayout.Button (buttonText)) {							
 			gameDatabase.PrintAllMetaData();
 		}
 		
-		top += buttonHeight + padding;
-		if (GUI.Button (new Rect (left, top, width, buttonHeight), "Click to load inventory from sqlite")) {							
+		buttonText = "Click to load inventory from sqlite";
+		runningHeightTotal += GUI.skin.button.CalcHeight(new GUIContent(buttonText), Screen.width - padding); // + padding;
+		if (GUILayout.Button(buttonText)) {							
 			itemRepository.FindAll(gameDatabase);
 		}
 		
-		top += buttonHeight + padding;
-		if (GUI.Button (new Rect (left, top, width, buttonHeight), "Click to load inventory from SQL Server")) {							
+		buttonText = "Click to load inventory from SQL Server";
+		runningHeightTotal += GUI.skin.button.CalcHeight(new GUIContent(buttonText), Screen.width - padding); // + padding;
+		if (GUILayout.Button (buttonText)) {							
 			gameDatabase.SetConnection("Server=(local);Initial Catalog=atas;User=atas_user;Pwd=atas_pwd!", SupportedDbType.SQL_SERVER);
 			itemRepository.FindAll(gameDatabase);
 		}		
 		
+		GUILayout.Height(runningHeightTotal);
+		GUILayout.EndArea();
+
 		if (itemRepository.AllItems.Count == 0) { return; }
 
-		//Debug.Log ("Making labels for " + itemRepository.AllItems.Count + " item(s).");
-		
 		// we've got some inventory, so display it
-		top += buttonHeight + padding;		
-		DisplayInventory (left, top, width, labelHeight, padding);		
-		
-		
-		// logic for udpating
-		top += ((buttonHeight + padding) * itemRepository.AllItems.Count);
-		if (GUI.Button (new Rect (left, top, width, buttonHeight), "Click to update item type 'CORE'")) {			
+		runningHeightTotal += padding;
+		float bottom = DisplayInventory(runningHeightTotal);
+				
+		GUILayout.Space(padding);
+		GUILayout.BeginArea(new Rect(0, bottom + padding, Screen.width - padding, Screen.height / 4 ));
+		if (GUILayout.Button ("Click to update item type 'CORE'")) {			
 						
 			if (itemRepository == null || itemRepository.AllItems == null || itemRepository.AllItems.Count == 0)
 			{
@@ -104,18 +108,17 @@ public class GUIController : MonoBehaviour {
 					
 					itemRepository.SaveAll(gameDatabase);
 					
-					top += buttonHeight + padding;
-					DisplayInventory(left, top, width, labelHeight, padding);
+					DisplayInventory(runningHeightTotal);
 				}
 				else
 				{
 					Debug.Log("No item with item type CORE found.");
 				}
-			}
+			}			
 		}
 		
-		top += buttonHeight + padding;		
-		if (GUI.Button (new Rect (left, top, width, buttonHeight), "Click to add a whole new item type"))
+		//GUILayout.Space(padding);
+		if (GUILayout.Button ("Click to add a whole new item type"))
 		{
 			if (itemRepository == null || itemRepository.AllItems == null || itemRepository.AllItems.Count == 0)
 			{
@@ -130,7 +133,17 @@ public class GUIController : MonoBehaviour {
 				
 				if (myItemType != null)
 				{
-					string newval = ChangeValueToSomethingDifferent(myItemType.GameItemTypeCd);
+					GameItemType myNewItemType = null;
+					string newval = myItemType.GameItemTypeCd;
+					do
+					{
+						newval = ChangeValueToSomethingDifferent(newval);
+						myNewItemType =
+							itemTypeRepo.FindByKey(gameDatabase,
+										   new SortedDictionary<string, object>() { {"GameItemTypeCd", newval} });
+					}
+					while (myNewItemType != null);
+					
 					GameItemType newItemType = itemTypeRepo.CreateNewObject();
 					newItemType.GameItemTypeCd = newval;
 					newItemType.GameItemDescription = "a dynamically constructed item type";
@@ -143,8 +156,7 @@ public class GUIController : MonoBehaviour {
 					
 					itemRepository.SaveAll(gameDatabase);
 					
-					top += buttonHeight + padding;
-					DisplayInventory(left, top, width, labelHeight, padding);
+					DisplayInventory(runningHeightTotal);
 				}
 				else
 				{
@@ -152,35 +164,131 @@ public class GUIController : MonoBehaviour {
 				}
 			}			
 		}
+		
+		if (GUILayout.Button ("Click to delete an unused type")) {
+			if (itemRepository == null || itemRepository.AllItems == null || itemRepository.AllItems.Count == 0)
+			{
+				Debug.Log("Can't delete unless items were loaded.");				
+			}
+			
+			GameItemType itemTypeToDelete = null;
+			DTORepository<GameItemType> itemTypeRepo = DTORepository<GameItemType>.GetInstance();
+			itemTypeRepo.FindAll(gameDatabase);
+			foreach (GameItemType itemType in itemTypeRepo.AllItems)
+			{
+				bool inUse = false;
+				foreach (GameItem item in itemRepository.AllItems) 
+				{
+					// is item type in use?
+					bool itemsAreSame = item.GameItemType == itemType;
+					bool itemsAreEqual = item.GameItemType.Equals(itemType);
+					bool referenceEquals = System.Object.ReferenceEquals(item.GameItemType, itemType);
+					if (item.GameItemType.Equals(itemType))
+					{
+						inUse = true;
+						break;
+					}
+				}
+				
+				if (inUse) { continue; }
 
+				// not used
+				itemTypeToDelete = itemType;
+				break;
+			}
+			
+			if (itemTypeToDelete != null)
+			{
+				itemTypeRepo.DeleteObject(itemTypeToDelete);
+				itemTypeRepo.SaveAll(gameDatabase);
+				DisplayInventory(runningHeightTotal);
+			}			
+		}
+		
+		GUILayout.EndArea();
 	}
 
 	string ChangeValueToSomethingDifferent (string stringToChange)
 	{
 		// update it to something different, doesn't matter what -- we're just testing the update
-		string oldval = string.IsNullOrEmpty(stringToChange) ? "a" : stringToChange;
+		//string oldval = string.IsNullOrEmpty(stringToChange) ? "a" : stringToChange;
+		string oldval = null;
+		if (string.IsNullOrEmpty(stringToChange))
+		{
+			oldval = "a";
+		}
+		else
+		{
+			oldval = stringToChange;
+		}
+		
 		char c1 = oldval[0];
-		char c2 = (char)((int)c1 + 1);
+		char c2;
+		if (c1 >= 'z')
+		{
+			c2 = 'a';
+		}
+		else
+		{
+			c2 = (char)((int)c1 + 1);
+		}		 
 		return oldval.Replace(c1, c2);
+		
 	}
 
-    void DisplayInventory (int left, int top, int width, int labelHeight, int padding)
+    float DisplayInventory (float top)
 	{
-		GUI.Label(new Rect(left, top, width, labelHeight), "We have the following items:");		
-
+		GUILayout.BeginArea(new Rect(top, Screen.height/2, Screen.width - padding , Screen.height / 2));
+		float inventoryRunningHeight = 0;
+		string labelText = "We have the following items:";
+		GUILayout.Label(labelText);	
+		inventoryRunningHeight += GUI.skin.button.CalcHeight(new GUIContent(labelText), Screen.width - padding); // + padding;
+		
 		// iterate through the item collection, creating a label to display each one
 		foreach (GameItem item in itemRepository.AllItems) {
 		
 			string inventoryDescr = 
-				string.Format("Game Item ID:{0} is a(n): {1}, with properties: Can Heal = {2}, Body Part Worn = {3}",
-							  item.GameItemId, 
+				string.Format("Game Item ID:{0} is a(n): {1} ({2}), with properties: Can Heal = {3}, Body Part Worn = {4}",
+							  item.GameItemId,
+							  item.GameItemType.GameItemTypeCd,
 							  item.GameItemType.GameItemDescription,
 							  item.GameItemType.CanHeal,
-							  string.IsNullOrEmpty(item.GameItemType.BodyPartWornCd) ? 
-									"<none>" : item.GameItemType.BodyPartWornCd);
+							  item.GameItemType.BodyPartWornCd == null ?
+									 "<none>" : item.GameItemType.BodyPartWornCd);
 		
-			top += labelHeight + padding;
-			GUI.Label(new Rect(left, top, width, labelHeight), inventoryDescr);			
+			GUILayout.Label(inventoryDescr);			
+
+			inventoryRunningHeight += GUI.skin.button.CalcHeight(new GUIContent(inventoryDescr), Screen.width - padding);
 		}
+		
+		labelText = "We have the following item types:";
+		GUILayout.Label(labelText);	
+		inventoryRunningHeight += GUI.skin.button.CalcHeight(new GUIContent(labelText), Screen.width - padding); // + padding;
+		
+		// iterate through the item type collection, creating a label to display each one
+		DTORepository<GameItemType> gameItemTypeRepo = DTORepository<GameItemType>.GetInstance();
+		gameItemTypeRepo.FindAll(gameDatabase);
+		foreach (GameItemType itemType in gameItemTypeRepo.AllItems) {
+		
+			string inventoryDescr = 
+				string.Format("Game Item Type {0} ({1}) has properties Can Heal = {2}, Body Part Worn = {3}",
+							  itemType.GameItemTypeCd,
+							  itemType.GameItemDescription,
+							  itemType.CanHeal,
+							  itemType.BodyPartWornCd == null ?
+									 "<none>" : itemType.BodyPartWornCd);
+		
+			GUILayout.Label(inventoryDescr);			
+
+			inventoryRunningHeight += GUI.skin.button.CalcHeight(new GUIContent(inventoryDescr), Screen.width - padding);
+		}
+		GUILayout.EndArea();
+		
+		return inventoryRunningHeight;
+	}
+	
+	void myWindowFunction(int id)
+	{
+		GUILayout.Label("window function");
 	}
 }
